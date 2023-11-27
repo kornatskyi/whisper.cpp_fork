@@ -539,6 +539,18 @@ int main(int argc, char ** argv) {
                 // text inference
                 bool done = false;
                 std::string text_to_speak;
+                  std::string last_sentence = "";
+                  std::string new_text;
+
+                  std::ofstream file;
+                  file.open("../../data.txt");
+
+                  if (!file)
+                  {
+                    std::string errs = "Unable to open file";
+                      printf("%s", errs.c_str());
+                      return 1;
+                  }
                 while (true) {
                     // predict
                     if (embd.size() > 0) {
@@ -655,7 +667,28 @@ int main(int argc, char ** argv) {
                             // add it to the context
                             embd.push_back(id);
 
-                            text_to_speak += llama_token_to_piece(ctx_llama, id);
+                            new_text = llama_token_to_piece(ctx_llama, id);
+                            text_to_speak += new_text;
+
+
+                               file << new_text;
+                               file.flush();
+                            size_t pos = new_text.find('.');
+                            if (pos != std::string::npos)
+                            {
+                                // Find the last sentence
+                                size_t lastSentenceEnd = text_to_speak.rfind('.', text_to_speak.size() - new_text.size() - 1);
+                                if (lastSentenceEnd != std::string::npos)
+                                {
+                                    last_sentence = text_to_speak.substr(lastSentenceEnd + 1);
+                                    printf("%s", ("\nPrint last sentence" + last_sentence + "\n").c_str());
+
+                                    // Optional: Clear everything before the last sentence end
+                                    // text_to_speak.erase(0, lastSentenceEnd + 1);
+                                } else {
+                                     printf("%s", ("\nPrint first sentence" + text_to_speak + "\n").c_str());
+                                }
+                            }
 
                             printf("%s", llama_token_to_piece(ctx_llama, id).c_str());
                         }
@@ -677,6 +710,7 @@ int main(int argc, char ** argv) {
                                 break;
                             }
                         }
+                  
                     }
 
                     is_running = sdl_poll_events();
@@ -686,12 +720,12 @@ int main(int argc, char ** argv) {
                     }
                 }
 
-                text_to_speak = ::replace(text_to_speak, "'", "'\"'\"'");
-                int ret = system((params.speak + " " + std::to_string(voice_id) + " '" + text_to_speak + "'").c_str());
-                if (ret != 0) {
-                    fprintf(stderr, "%s: failed to speak\n", __func__);
-                }
-
+                // text_to_speak = ::replace(text_to_speak, "'", "'\"'\"'");
+                // int ret = system((params.speak + " " + std::to_string(voice_id) + " '" + text_to_speak + "'").c_str());
+                // if (ret != 0) {
+                //     fprintf(stderr, "%s: failed to speak\n", __func__);
+                // }
+                file.close();
                 audio.clear();
             }
         }
